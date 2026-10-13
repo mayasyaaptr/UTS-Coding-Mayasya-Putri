@@ -1,1 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voucher Entri Transaksi Kas Keluar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen py-8 px-4 sm:px-6 lg:px-8">
 
+    <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+        
+        <!-- Header Banner -->
+        <div class="bg-gradient-to-r from-blue-700 to-indigo-800 px-6 py-6 text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <span class="bg-blue-600/60 text-blue-100 text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">Modul Akuntansi</span>
+                <h1 class="text-2xl font-bold mt-1">Voucher Kas Keluar</h1>
+                <p class="text-blue-200 text-sm">Pencatatan transaksi pengeluaran kas dan bank secara rinci</p>
+            </div>
+            <div class="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
+                <span class="text-xs text-blue-200">Status:</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">Draft</span>
+            </div>
+        </div>
+
+        <!-- Form Voucher -->
+        <form id="voucherForm" class="p-6 sm:p-8 space-y-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Nomor Bukti</label>
+                    <input type="text" id="nomorBukti" value="KK-2026-0001" required
+                        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Tanggal</label>
+                    <input type="date" id="tanggalBukti" required
+                        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Dibayarkan Kepada</label>
+                    <input type="text" id="penerima" placeholder="Nama Penerima / Vendor" required
+                        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Deskripsi / Keterangan Umum</label>
+                    <textarea id="deskripsi" rows="2" placeholder="Tuliskan keterangan transaksi pengeluaran kas ini..." required
+                        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"></textarea>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-semibold text-slate-800">Detail Baris Jurnal</h3>
+                    <button type="button" id="addRowBtn" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Tambah Baris
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
+                                <th class="py-3 px-4 w-12 text-center">No</th>
+                                <th class="py-3 px-4 w-2/5">Kode Akun & Nama Akun</th>
+                                <th class="py-3 px-4 w-1/4">Debit (Rp)</th>
+                                <th class="py-3 px-4 w-1/4">Kredit (Rp)</th>
+                                <th class="py-3 px-4 w-16 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="journalRows" class="divide-y divide-slate-200 text-sm">
+                            <!-- Rows will be injected by JavaScript -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-slate-50 font-semibold text-slate-800 border-t-2 border-slate-200">
+                                <td colspan="2" class="py-3 px-4 text-right">TOTAL:</td>
+                                <td class="py-3 px-4" id="totalDebit">Rp 0</td>
+                                <td class="py-3 px-4" id="totalKredit">Rp 0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Balance Status Alert -->
+                <div id="balanceAlert" class="mt-3 p-3 rounded-lg text-xs font-medium flex items-center justify-between hidden">
+                    <span id="balanceText"></span>
+                    <span id="balanceDiff" class="font-bold"></span>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-200">
+                <button type="button" id="resetBtn" class="px-5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-xl text-sm transition">
+                    Reset Form
+                </button>
+                <button type="submit" id="submitBtn" disabled class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Simpan Voucher
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Notification Modal / Box -->
+    <div id="notificationModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+            <div id="modalIcon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"></div>
+            <h3 id="modalTitle" class="text-lg font-bold text-center text-slate-900 mb-2"></h3>
+            <p id="modalMessage" class="text-sm text-slate-600 text-center mb-6"></p>
+            <button type="button" id="modalCloseBtn" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-sm transition">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Supabase Configuration (Ganti dengan URL dan Anon Key proyek Supabase Anda)
+        const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
+        // Inisialisasi Supabase client
+        const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+        // List of sample accounts for selection
+        const sampleAccounts = [
+            { code: "1-1110", name: "Kas Kecil" },
+            { code: "1-1120", name: "Bank BCA - Giro" },
+            { code: "2-1100", name: "Hutang Usaha" },
+            { code: "5-1100", name: "Biaya Gaji & Upah" },
+            { code: "5-1200", name: "Biaya Sewa Kantor" },
+            { code: "5-1300", name: "Biaya Utilitas (Listrik/Air/Telp)" },
+            { code: "5-1400", name: "Biaya Pemeliharaan & Perbaikan" },
+            { code: "6-1100", name: "Biaya Administrasi Bank" },
+            { code: "6-1200", name: "Biaya Lain-lain" }
+        ];
+
+        let rowCount = 0;
+
+        // Set default date to today
+        document.getElementById('tanggalBukti').valueAsDate = new Date();
+
+        function createRow(accountCode = '', debit = 0, kredit = 0) {
+            rowCount++;
+            const tbody = document.getElementById('journalRows');
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-colors journal-row';
+            tr.dataset.id = rowCount;
+
+            let optionsHtml = '<option value="">-- Pilih Kode Akun --</option>';
+            sampleAccounts.forEach(acc => {
+                const selected = acc.code === accountCode ? 'selected' : '';
+                optionsHtml += `<option value="${acc.code}" ${selected}>${acc.code} - ${acc.name}</option>`;
+            });
+
+            tr.innerHTML = `
+                <td class="py-3 px-4 text-center font-medium text-slate-500 row-number"></td>
+                <td class="py-3 px-4">
+                    <select class="account-select w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" required>
+                        ${optionsHtml}
+                    </select>
+                </td>
+                <td class="py-3 px-4">
+                    <input type="number" min="0" value="${debit}" placeholder="0" class="debit-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-right" oninput="calculateTotals()">
+                </td>
+                <td class="py-3 px-4">
+                    <input type="number" min="0" value="${kredit}" placeholder="0" class="kredit-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-right" oninput="calculateTotals()">
+                </td>
+                <td class="py-3 px-4 text-center">
+                    <button type="button" onclick="removeRow(this)" class="delete-row-btn p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus Baris">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+            updateRowNumbers();
+            calculateTotals();
+        }
+
+        function removeRow(button) {
+            const tbody = document.getElementById('journalRows');
+            if (tbody.rows.length <= 1) {
+                showModal("Perhatian", "Voucher minimal harus memiliki 1 baris jurnal.", "warning");
+                return;
+            }
+            button.closest('tr').remove();
+            updateRowNumbers();
+            calculateTotals();
+        }
+
+        function updateRowNumbers() {
+            const rows = document.querySelectorAll('#journalRows tr');
+            rows.forEach((row, index) => {
+                row.querySelector('.row-number').textContent = index + 1;
+            });
+        }
+
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+        }
+
+        function calculateTotals() {
+            let totalDebit = 0;
+            let totalKredit = 0;
+            let allRowsValid = true;
+            const rows = document.querySelectorAll('.journal-row');
+
+            rows.forEach(row => {
+                const debitVal = parseFloat(row.querySelector('.debit-input').value) || 0;
+                const kreditVal = parseFloat(row.querySelector('.kredit-input').value) || 0;
+                
+                // Validasi tiap baris: hanya salah satu yang diisi (> 0), tidak keduanya dan tidak nol
+                const hasDebit = debitVal > 0;
+                const hasKredit = kreditVal > 0;
+                if (!((hasDebit && !hasKredit) || (!hasDebit && hasKredit))) {
+                    allRowsValid = false;
+                }
+
+                // Menggunakan pembulatan untuk menghindari error floating point
+                totalDebit += Math.round((debitVal + Number.EPSILON) * 100) / 100;
+                totalKredit += Math.round((kreditVal + Number.EPSILON) * 100) / 100;
+            });
+
+            // Pembulatan akhir ke bilangan bulat rupiah
+            totalDebit = Math.round(totalDebit);
+            totalKredit = Math.round(totalKredit);
+
+            document.getElementById('totalDebit').textContent = formatRupiah(totalDebit);
+            document.getElementById('totalKredit').textContent = formatRupiah(totalKredit);
+
+            const balanceAlert = document.getElementById('balanceAlert');
+            const balanceText = document.getElementById('balanceText');
+            const balanceDiff = document.getElementById('balanceDiff');
+
+            balanceAlert.classList.remove('hidden');
+            let isBalanced = (totalDebit === totalKredit && totalDebit > 0);
+
+            if (isBalanced) {
+                balanceAlert.className = 'mt-3 p-3 rounded-lg text-xs font-medium flex items-center justify-between bg-emerald-50 text-emerald-800 border border-emerald-200';
+                balanceText.textContent = 'SEIMBANG';
+                balanceDiff.textContent = formatRupiah(0);
+            } else {
+                balanceAlert.className = 'mt-3 p-3 rounded-lg text-xs font-medium flex items-center justify-between bg-rose-50 text-rose-800 border border-rose-200';
+                const diff = Math.abs(totalDebit - totalKredit);
+                balanceText.textContent = 'TIDAK SEIMBANG';
+                balanceDiff.textContent = 'selisih ' + formatRupiah(diff);
+            }
+
+            // Validasi Tombol Submit
+            const noBukti = document.getElementById('nomorBukti').value.trim();
+            const tanggal = document.getElementById('tanggalBukti').value;
+            const submitBtn = document.getElementById('submitBtn');
+
+            const minRows = rows.length >= 2;
+            const headerValid = noBukti !== '' && tanggal !== '';
+
+            if (headerValid && minRows && allRowsValid && isBalanced) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+
+        function showModal(title, message, type = 'success') {
+            const modal = document.getElementById('notificationModal');
+            const modalIcon = document.getElementById('modalIcon');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+
+            if (type === 'success') {
+                modalIcon.className = 'w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4';
+                modalIcon.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            } else {
+                modalIcon.className = 'w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4';
+                modalIcon.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        document.getElementById('modalCloseBtn').addEventListener('click', () => {
+            document.getElementById('notificationModal').classList.add('hidden');
+        });
+
+        document.getElementById('nomorBukti').addEventListener('input', calculateTotals);
+        document.getElementById('tanggalBukti').addEventListener('change', calculateTotals);
+
+        document.getElementById('addRowBtn').addEventListener('click', () => {
+            createRow();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('voucherForm').reset();
+            document.getElementById('tanggalBukti').valueAsDate = new Date();
+            document.getElementById('journalRows').innerHTML = '';
+            createRow('5-1300', 750000, 0);
+            createRow('1-1110', 0, 750000);
+            calculateTotals();
+        });
+
+        document.getElementById('voucherForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            let totalDebit = 0;
+            let totalKredit = 0;
+            const rows = document.querySelectorAll('.journal-row');
+            let linesData = [];
+            let allRowsValid = true;
+
+            rows.forEach((row, index) => {
+                const accountCode = row.querySelector('.account-select').value;
+                const debitVal = parseFloat(row.querySelector('.debit-input').value) || 0;
+                const kreditVal = parseFloat(row.querySelector('.kredit-input').value) || 0;
+                
+                const hasDebit = debitVal > 0;
+                const hasKredit = kreditVal > 0;
+
+                if (!accountCode || !((hasDebit && !hasKredit) || (!hasDebit && hasKredit))) {
+                    allRowsValid = false;
+                }
+
+                totalDebit += Math.round((debitVal + Number.EPSILON) * 100) / 100;
+                totalKredit += Math.round((kreditVal + Number.EPSILON) * 100) / 100;
+
+                linesData.push({
+                    row_number: index + 1,
+                    account_code: accountCode,
+                    debit: debitVal,
+                    kredit: kreditVal
+                });
+            });
+
+            totalDebit = Math.round(totalDebit);
+            totalKredit = Math.round(totalKredit);
+
+            const noBukti = document.getElementById('nomorBukti').value.trim();
+            const tanggal = document.getElementById('tanggalBukti').value;
+            const penerima = document.getElementById('penerima').value.trim();
+            const deskripsi = document.getElementById('deskripsi').value.trim();
+
+            // Kontrol validasi ketat (Safeguard sebelum memanggil RPC)
+            if (!noBukti || !tanggal || rows.length < 2 || !allRowsValid || totalDebit !== totalKredit || totalDebit <= 0) {
+                showModal("Validasi Gagal", "Data tidak memenuhi syarat validasi ketat (Nomor bukti, tanggal, minimal 2 baris, eksklusivitas debit/kredit per baris, dan keseimbangan total).", "warning");
+                return;
+            }
+
+            const headerData = {
+                nomor_bukti: noBukti,
+                tanggal: tanggal,
+                penerima: penerima,
+                deskripsi: deskripsi,
+                total_amount: totalDebit
+            };
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Menyimpan ke Database...';
+
+            try {
+                if (!supabaseClient) {
+                    throw new Error("Klien Supabase belum diinisialisasi.");
+                }
+
+                // Kirim data ke fungsi RPC Supabase create_voucher dengan payload header dan lines
+                const { data, error } = await supabaseClient.rpc('create_voucher', {
+                    header: headerData,
+                    lines: linesData
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                showModal("Berhasil Disimpan", `Voucher kas keluar nomor ${noBukti} berhasil disimpan melalui Supabase RPC.`, "success");
+                
+                // Reset form
+                document.getElementById('voucherForm').reset();
+                document.getElementById('tanggalBukti').valueAsDate = new Date();
+                document.getElementById('journalRows').innerHTML = '';
+                createRow('5-1300', 750000, 0);
+                createRow('1-1110', 0, 750000);
+                calculateTotals();
+
+            } catch (err) {
+                console.error("Gagal RPC create_voucher:", err);
+                showModal("Gagal Menyimpan", `Terjadi kesalahan pada server: ${err.message || err}`, "warning");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Simpan Voucher';
+            }
+        });
+
+        // Initialize with 2 default sample rows (Expense & Kas)
+        window.onload = function() {
+            createRow('5-1300', 750000, 0);
+            createRow('1-1110', 0, 750000);
+        };
+    </script>
+</body>
+</html>
